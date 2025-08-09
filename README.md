@@ -19,62 +19,51 @@
 
 ## Usage
 
-To use the plugin, add the following to your Neovim configuration:
-
 ```lua
-return {
+{
     "copilotlsp-nvim/copilot-lsp",
-    init = function()
-        vim.g.copilot_nes_debounce = 500
-        vim.lsp.enable("copilot_ls")
-        vim.keymap.set("n", "<tab>", function()
-            local bufnr = vim.api.nvim_get_current_buf()
-            local state = vim.b[bufnr].nes_state
-            if state then
-                -- Try to jump to the start of the suggestion edit.
-                -- If already at the start, then apply the pending suggestion and jump to the end of the edit.
-                local _ = require("copilot-lsp.nes").walk_cursor_start_edit()
-                    or (
-                        require("copilot-lsp.nes").apply_pending_nes()
-                        and require("copilot-lsp.nes").walk_cursor_end_edit()
-                    )
-                return nil
-            else
-                -- Resolving the terminal's inability to distinguish between `TAB` and `<C-i>` in normal mode
-                return "<C-i>"
-            end
-        end, { desc = "Accept Copilot NES suggestion", expr = true })
-    end,
+    opts = {},
 }
 ```
 
-#### Clearing suggestions with Escape
+## Default configuration
 
-You can map the `<Esc>` key to clear suggestions while preserving its other functionality:
-
-```lua
--- Clear copilot suggestion with Esc if visible, otherwise preserve default Esc behavior
-vim.keymap.set("n", "<esc>", function()
-    if not require("copilot-lsp.nes").clear() then
-        -- fallback to other functionality
-    end
-end, { desc = "Clear Copilot suggestion or fallback" })
-```
-
-## Default Configuration
-
-### NES (Next Edit Suggestion) Smart Clearing
-
-You don’t need to configure anything, but you can customize the defaults:
-`move_count_threshold` is the most important. It controls how many cursor moves happen before suggestions are cleared. Higher = slower to clear.
+You don't need to configure anything, but you can customize the defaults: `move_count_threshold` is the most important setting - it controls how many cursor moves happen before suggestions are cleared. Higher values make suggestions persist longer.
 
 ```lua
 require('copilot-lsp').setup({
-  nes = {
-    move_count_threshold = 3,   -- Clear after 3 cursor movements
-  }
+    nes = {
+        auto_trigger = false,
+        debounce = 500,
+        move_count_threshold = 3,
+        distance_threshold = 40,
+        clear_on_large_distance = true,
+        count_horizontal_moves = true,
+        reset_on_approaching = true,
+    }
+    keymaps = {
+        request_nes = nil,
+        accept_nes = nil,
+        clear_nes = nil,
+    },
 })
 ```
+
+### Keymap Configuration
+
+**By default, no keymaps are set** to avoid breaking existing configurations, you need to explicitly set them:
+
+```lua
+require('copilot-lsp').setup({
+    keymaps = {
+        request_nes = "<leader>re",
+        accept_nes = "<tab>",
+        clear_nes = "<esc>",
+    },
+})
+```
+
+When `accept_nes` is set to `<tab>`, it will fallback to `<C-i>` in normal mode when no suggestion is active (resolving the terminal's inability to distinguish between Tab and Ctrl-I).
 
 ### Blink Integration
 
